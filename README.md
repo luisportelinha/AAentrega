@@ -3,7 +3,7 @@ Archivos para la entrega de la práctica de AA: Identificación de notas musical
 
 Las aproximaciones se ejecutan desde el archivo con su nombre.
 
-Los parámetros de los sistemas (RRNNAA, kNN, etc) se cambian donde se definen.
+Los parámetros de los sistemas (RNA, SVM, árbol de decisión, kNN) se cambian donde se definen.
 
 La función procesar_archivos de las aproximaciones 2, 3, 4 y 5 se ejecuta solo la primera vez, y luego debe comentarse con un símbolo #. Esta es la función que procesa la entrada y guarda los valores en un .txt, para ahorrar tiempo, y solo se necesita ejecutar la primera vez.
 
