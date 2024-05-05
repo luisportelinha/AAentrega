@@ -609,32 +609,53 @@ function accuracy(targets::AbstractArray{Bool,2}, outputs::AbstractArray{Bool,2}
     return mean(correctClassifications)
 end
 
-function calculateMetrics(TN, FP, FN, TP)
-    total = TN + FP + FN + TP
-    acc = total == 0 ? 0.0 : (TN + TP) / total
-    errorRate = 1.0 - acc
-
-    metrics = Dict(
-        "Recall" => FN + TP == 0 ? 0.0 : TP / (TP + FN),
-        "Specificity" => TN + FP == 0 ? 0.0 : TN / (TN + FP),
-        "Precision" => TP + FP == 0 ? 0.0 : TP / (TP + FP),
-        "NPV" => TN + FN == 0 ? 0.0 : TN / (TN + FN),
-        "F1" => TP + FP == 0 || FN + TP == 0 ? 0.0 : 2 * TP / (2 * TP + FP + FN)
-    )
-
-    return acc, errorRate, metrics
-end
-
 function confusionMatrix(outputs::AbstractArray{Bool,1}, targets::AbstractArray{Bool,1})
-    TN = sum(.!outputs .& .!targets)
-    FN = sum(.!outputs .& targets)
-    TP = sum(outputs .& targets)
-    FP = sum(outputs .& .!targets)
+    #Comprobamos que los vectores de salidas obtenidas y salidas deseadas sean de la misma longitud
+    @assert(length(outputs)==length(targets));
 
-    confMatrix = [TN FP; FN TP]
-    acc, errorRate, metrics = calculateMetrics(TN, FP, FN, TP)
+    #Obtenemos los valores de VP, VN, FP, FN
+    vp = sum(targets .& outputs);
+    vn = sum(.!targets .& .!outputs);
+    fp = sum(.!targets .& outputs);
+    fn = sum(targets .& .!outputs);
 
-    return (acc, errorRate, metrics, confMatrix)
+
+    #Obtenemos la precisión y la tasa de error utilizando las funciones auxiliares
+    acc = accuracy(outputs,targets);
+    errorRate = 1. - acc;
+
+    #Calculamos la sensibilidad, la especificidad, el valor predictivo positivo, el valor predictivo negativo y la F1-score
+    recall = vp / (fn + vp);
+    specificity = vn / (fp + vn);
+    ppv = vp / (vp + fp);
+    npv = vn / (vn + fn)
+    f1 = (2 * recall * ppv) / (recall + ppv); 
+
+    #Calculamos la matriz de confusión
+    conf_matrix = Array{Int64,2}(undef, 2, 2);
+    conf_matrix[1,1] = vn;
+    conf_matrix[1,2] = fp;
+    conf_matrix[2,1] = fn;
+    conf_matrix[2,2] = vp;
+
+    #Tenemos en cuenta varios casos particulares
+    if (vn == length(targets))
+        recall = 1.;
+        ppv = 1.;
+    elseif (vp == length(targets))
+        specificity = 1.;
+        npv = 1.;
+    end
+
+    recall = isnan(recall) ? 0. : recall;
+    specificity = isnan(specificity) ? 0. : specificity;
+    ppv = isnan(ppv) ? 0. : ppv;
+    npv = isnan(npv) ? 0. : npv;
+
+    f1 = (recall == ppv == 0.) ? 0. : 2 * (recall * ppv) / (recall + ppv);
+
+    return (acc, errorRate, recall, specificity, ppv, npv, f1, conf_matrix);
+
 end
 
 function printConfusionMatrix(outputs::AbstractArray{Bool,1}, targets::AbstractArray{Bool,1})
